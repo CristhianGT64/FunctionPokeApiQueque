@@ -1,0 +1,29 @@
+ func azure functionapp publish serverless-pokequequepcaiii-dev --build remote --verbose
+#esperar que se haga el proceso de release
+
+
+Antes de todo esto hay que crear un ambiente para python 11
+
+por si no te da el functionapp cambia la version de python asi
+
+# Descarga el instalador de Python 3.11 desde:
+# https://www.python.org/downloads/release/python-3111/
+
+# O si tienes winget instalado:
+winget install Python.Python.3.11
+
+# Luego verifica:
+py -3.11 --version
+
+
+# Crear entorno virtual
+py -3.11 -m venv venv
+
+# Activar
+.\venv\Scripts\Activate.ps1
+
+# Instalar dependencias
+pip install -r requirements.txt
+
+# Republica
+func azure functionapp publish serverless-pokequequepcaiii-dev

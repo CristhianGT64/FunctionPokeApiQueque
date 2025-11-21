@@ -29,10 +29,10 @@ def QueueTriggerPokeReport(azqueue: func.QueueMessage):
     body = azqueue.get_body().decode('utf-8')
     record = json.loads(body)
     id = record[0]["id"]
-
     update_request( id , "inprogress" )
     request_info = get_request(id)
     pokemons = get_pokemons( request_info[0]["type"] )
+
     pokemon_bytes = generate_csv_to_blob( pokemons )
     blob_name = f"poke_report_{id}.csv"
     upload_csv_to_blob( blob_name=blob_name, csv_data=pokemon_bytes )
