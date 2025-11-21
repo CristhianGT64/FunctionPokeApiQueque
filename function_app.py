@@ -8,6 +8,7 @@ import requests
 from dotenv import load_dotenv
 import pandas as pd
 from azure.storage.blob import BlobServiceClient
+import random
 
 app = func.FunctionApp()
 load_dotenv()
@@ -29,11 +30,39 @@ def QueueTriggerPokeReport(azqueue: func.QueueMessage):
     body = azqueue.get_body().decode('utf-8')
     record = json.loads(body)
     id = record[0]["id"]
-    update_request( id , "inprogress" )
-    request_info = get_request(id)
-    pokemons = get_pokemons( request_info[0]["type"] )
 
-    pokemon_bytes = generate_csv_to_blob( pokemons )
+    update_request( id , "inprogress" )
+
+
+    request_info = get_request(id)
+
+    pokemons = get_pokemons( request_info[0]["type"] )
+    sample_size = request_info[0].get("sample_size")
+    
+
+    try:
+        sample_size = int(sample_size) if sample_size is not None else None
+    except (ValueError, TypeError):
+        sample_size = None
+
+
+        # Si hay sample_size válido y menor al total, muestrear
+    total = len(pokemons)
+    if sample_size is not None and 0 < sample_size < total:
+        pokemons_to_process = random.sample(pokemons, sample_size)
+        logger.info(
+            f"Aplicando muestreo: sample_size={sample_size}, total={total}"
+        )
+    else:
+        pokemons_to_process = pokemons
+        logger.info(
+            f"Sin muestreo: sample_size={sample_size}, total={total}"
+        )
+
+    pokemon_bytes = generate_csv_to_blob(pokemons_to_process)
+
+    # pokemon_bytes = generate_csv_to_blob( pokemons )
+
     blob_name = f"poke_report_{id}.csv"
     upload_csv_to_blob( blob_name=blob_name, csv_data=pokemon_bytes )
     logger.info( f"Archivo {blob_name} se subio con exito" )
