@@ -63,8 +63,77 @@ def get_pokemons( type: str ) -> dict:
     pokemon_entries = data.get("pokemon", [] )
     return [ p["pokemon"] for p in pokemon_entries ]
 
+def get_pokemon_details( pokemon_url: str ) -> dict:
+    try:
+        response = requests.get( pokemon_url, timeout=30 )
+        response.raise_for_status()
+        data = response.json()
+
+        stats = data.get("stats", [])
+        hp = stats[0]["base_stat"] if len(stats) > 0 else None
+        attack = stats[1]["base_stat"] if len(stats) > 1 else None
+        defense = stats[2]["base_stat"] if len(stats) > 2 else None
+        special_attack = stats[3]["base_stat"] if len(stats) > 3 else None
+        special_defense = stats[4]["base_stat"] if len(stats) > 4 else None
+        speed = stats[5]["base_stat"] if len(stats) > 5 else None
+
+        abilities_data = data.get("abilities", [])
+        abilities_list = [ a["ability"]["name"] for a in abilities_data ]
+        abilities_str = ", ".join( abilities_list )
+
+        return {
+            "hp": hp
+            , "attack": attack
+            , "defense": defense
+            , "special_attack": special_attack
+            , "special_defense": special_defense
+            , "speed": speed
+            , "abilities": abilities_str
+        }
+    except Exception as e:
+        logger.error( f"Error al obtener detalles de pokemon {pokemon_url} {e}" )
+        return {
+            "hp": None
+            , "attack": None
+            , "defense": None
+            , "special_attack": None
+            , "special_defense": None
+            , "speed": None
+            , "abilities": ""
+        }
+
+
 def generate_csv_to_blob( pokemon_list: list ) -> bytes:
-    df = pd.DataFrame( pokemon_list )
+    filas = []
+
+    for pokemon in pokemon_list:
+        name = pokemon.get("name")
+        url = pokemon.get("url")
+
+        detalles = get_pokemon_details( url )
+
+        fila = {
+            "name": name
+            , "url": url
+        }
+        fila.update( detalles )
+        filas.append( fila )
+
+    df = pd.DataFrame( filas )
+
+    columnas = [
+        "name",
+        "url",
+        "hp",
+        "attack",
+        "defense",
+        "special_attack",
+        "special_defense",
+        "speed",
+        "abilities",
+    ]
+    df = df[columnas]
+
     output = io.StringIO()
     df.to_csv( output , index=False, encoding='utf-8' )
     csv_bytes = output.getvalue().encode('utf-8')
